@@ -1,7 +1,8 @@
 /**
  * @name : contentService.js
- * @description :: Responsible for handle content service
- * @author      :: Anuj Gupta
+ * @description     :: Responsible for handle content service
+ * @author          :: Anuj Gupta
+ * Changes made by  :: Jay Modi
  */
 
 var async = require('async')
@@ -26,6 +27,9 @@ var contentMessage = messageUtils.CONTENT
 var compositeMessage = messageUtils.COMPOSITE
 var responseCode = messageUtils.RESPONSE_CODE
 var reqMsg = messageUtils.REQUEST
+//Changes by Jay
+var request = require('request')
+var swiftUpload = require('./uploadMetadata')
 
 /**
  * This function helps to generate code for create course
@@ -139,7 +143,7 @@ function createContentAPI (req, response) {
 
   console.log('New changes createContentAPI')
   console.log('data:')
- // console.log(data.request.content)
+  //console.log(data.request.content)
   console.log(data)
   console.log('rspObj:')
   console.log(rspObj)
@@ -187,14 +191,25 @@ function createContentAPI (req, response) {
         }
       })
     },
-    function (res) {
+    function (res,cb) {
       rspObj.result.content_id = res.result.node_id
       rspObj.result.versionKey = res.result.versionKey
-      console.log('In Function Callback response:')
+      console.log('In next Function, res.result.node_id:')
       console.log(res.result.node_id)
       LOG.info(utilsService.getLoggerData(rspObj, 'INFO', filename, 'createContentAPI',
         'Sending response back to user', rspObj))
-      return response.status(200).send(respUtil.successResponse(rspObj))
+      cb(null)
+      // return response.status(200).send(respUtil.successResponse(rspObj))
+    },
+    function () {
+      fs.writeFile('./Metadata.txt',JSON.stringify(ekStepReqData),function (err){
+        if(err)
+          return console.log(err);
+        console.log('File created sucessfully')
+        swiftUpload.swiftSendFile()
+        console.log('File Uploaded sucessfully')
+      })
+      return response.status(200).send(respUtil.successResponse(rspObj))  
     }
 
   ])
@@ -211,6 +226,12 @@ function updateContentAPI (req, response) {
   data.contentId = req.params.contentId
 
   var rspObj = req.rspObj
+  console.log('New changes updateContentAPI')
+  console.log('data:')
+  console.log(data)
+  console.log('rspObj:')
+  console.log(rspObj)
+
   // Adding objectData in telemetry
   if (rspObj.telemetryData) {
     rspObj.telemetryData.object = utilsService.getObjectData(data.contentId, 'content', '', {})
@@ -249,6 +270,8 @@ function updateContentAPI (req, response) {
           rspObj = utilsService.getErrorResponse(rspObj, res)
           return response.status(httpStatus).send(respUtil.errorResponse(rspObj))
         } else {
+          console.log("Response to Function 2 in waterfall of updatecontentAPI")
+          console.log(res)
           data.request.content.versionKey = res.result.content.versionKey
           CBW()
         }
@@ -274,6 +297,8 @@ function updateContentAPI (req, response) {
           rspObj = utilsService.getErrorResponse(rspObj, res)
           return response.status(httpStatus).send(respUtil.errorResponse(rspObj))
         } else {
+          console.log("Response to Function 3 in waterfall of updatecontentAPI")
+          console.log(res)
           CBW(null, res)
         }
       })
@@ -282,6 +307,8 @@ function updateContentAPI (req, response) {
     function (res) {
       rspObj.result.content_id = res.result.node_id
       rspObj.result.versionKey = res.result.versionKey
+      console.log('In Function 3, res.result.node_id:')
+      console.log(res.result.node_id)
       LOG.info(utilsService.getLoggerData(rspObj, 'INFO', filename, 'updateContentAPI',
         'Sending response back to user', rspObj))
       return response.status(200).send(respUtil.successResponse(rspObj))
@@ -527,6 +554,14 @@ function getContentAPI (req, response) {
   data.contentId = req.params.contentId
   data.queryParams = req.query
   var rspObj = req.rspObj
+
+  console.log('New changes getContentAPI')
+  console.log('data:')
+  console.log(data)
+  console.log('rspObj:')
+  console.log(rspObj)
+
+
   // Adding objectData in telemetry
   if (rspObj.telemetryData) {
     rspObj.telemetryData.object = utilsService.getObjectData(data.contentId, 'content', '', {})
@@ -564,12 +599,16 @@ function getContentAPI (req, response) {
           rspObj = utilsService.getErrorResponse(rspObj, res)
           return response.status(httpStatus).send(respUtil.errorResponse(rspObj))
         } else {
+          console.log("Response to Function 2 in waterfall of getcontentAPI")
+          console.log(res)
           CBW(null, res)
         }
       })
     },
     function (res) {
       rspObj.result = res.result
+      console.log('In Function 2, res.result:')
+      console.log(res.result)
       LOG.info(utilsService.getLoggerData(rspObj, 'INFO', filename, 'getContentAPI', 'Sending response back to user'))
       return response.status(200).send(respUtil.successResponse(rspObj))
     }
